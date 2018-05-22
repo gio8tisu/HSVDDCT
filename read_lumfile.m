@@ -4,5 +4,6 @@ function [I] = read_lumfile(name)
     fID = fopen(name);
     I = fread(fID);
     fclose(fID);
+    I = reshape(I,sqrt(length(I))*ones(1,2));
 end
 
