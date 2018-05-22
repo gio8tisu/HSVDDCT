@@ -9,5 +9,4 @@ A. Dapena and S. Ahalt, "A hybrid DCT-SVD image-coding algorithm," in IEEE Trans
 
 doi: 10.1109/76.988658
 
-keywords: {correlation methods;discrete cosine transforms;image coding;singular value decomposition;transform coding;vector quantisation;bit rate;correlation;discrete cosine transform;distortion;high-frequency content;hybrid DCT-SVD image-coding algorithm;image quality;online adaptive vector quantization;simulation results;singular value decomposition;source image;Bit rate;Discrete cosine transforms;Discrete transforms;Eigenvalues and eigenfunctions;Image coding;Matrix decomposition;Rate distortion theory;Singular value decomposition;Transform coding;Vector quantization},
 URL: http://ieeexplore.ieee.org/stamp/stamp.jsp?tp=&arnumber=988658&isnumber=21285
