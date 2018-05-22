@@ -4,6 +4,7 @@ The DCT is used to transform those blocks in the source image that exhibit a hig
 while blocks with greater high-frequency content are transformed using the SVD.
 
 
+# References
 A. Dapena and S. Ahalt, "A hybrid DCT-SVD image-coding algorithm," in IEEE Transactions on Circuits and Systems for Video Technology, vol. 12, no. 2, pp. 114-121, Feb 2002.
 
 doi: 10.1109/76.988658
