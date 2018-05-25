@@ -1,8 +1,9 @@
 im = read_lumfile('Still_images/camman.lum'); %IMAGEN CUADRADA
 im = im/255; %normalizamos
 N = 4; %TAMAÑO BLOQUES
-%Nc = %COEFICIENTES A ENVIAR
+Nc = %COEFICIENTES A ENVIAR
 alpha = 0.5; %UMBRAL DE DECISIÓN
+beta = 0.5; %PARAMETRO PARA NUMERO DE AUTOVECTORES
 %añadirmos zeros si hace falta
 sobran1 = mod(size(im,1),N);
 if sobran1
