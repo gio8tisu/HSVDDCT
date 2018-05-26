@@ -1,10 +1,10 @@
 %% Leer imagen y definir parametros
-im = read_lumfile('Still_images/camman.lum'); %IMAGEN CUADRADA
+im = read_lumfile('Still_images/people.lum'); %IMAGEN CUADRADA
 im = im/255; %normalizamos
 N = 4; %TAMAÑO BLOQUES
-Nc = 12; %COEFICIENTES A ENVIAR
+Nc = 8; %COEFICIENTES A ENVIAR
 alpha = 0.2; %UMBRAL DE DECISIÓN
-beta = 0.8; %PARAMETRO PARA NUMERO DE AUTOVECTORES
+beta = 0.5; %PARAMETRO PARA NUMERO DE AUTOVECTORES
 
 %% Codificador
 %añadirmos zeros si hace falta
@@ -18,16 +18,35 @@ if sobran1
 end
 
 %para cada bloque de NxN...
-im_rec = [];
-for k=0:N:(length(im)-1)
-    bloque = im(1+k:k+N,1+k:k+N);
-    desv = std(bloque(:));
-    if (desv<alpha)
-        B = dct2(bloque);
-        coefs = zigzag(B,Nc);
-    else
-        [U_r, c, U_l] = my_svd(bloque, beta);
-        bloque_rec = my_svd_inv(U_l, c, U_r);
-        im_rec = [im_rec; bloque_rec];
-    end    
+im_rec = zeros(size(im));
+for k=0:N:(size(im,1)-1)
+    for l=0:N:(size(im,2)-1)
+        bloque = im(1+k:k+N,1+l:l+N);
+        desv = std(bloque(:));
+        if (desv<alpha)
+            B = dct2(bloque);
+            coefs = zigzag(B,Nc);
+            B_rec = unzigzag(coefs,N);
+            bloque_rec = idct2(B_rec);
+            im_rec(1+k:k+N,1+l:l+N) = bloque_rec;
+        else
+            [U_r, c, U_l] = my_svd(bloque, beta);
+            bloque_rec = my_svd_inv(U_l, c, U_r);
+            im_rec(1+k:k+N,1+l:l+N) = bloque_rec;
+        end
+    end
 end
+
+figure
+subplot(2,1,1)
+imshow(im',[])
+title('Imagen Original')
+
+subplot(2,1,2)
+imshow(im_rec',[])
+title('Imagen Reconstruida')
+
+diff = im-im_rec;
+diff_cuad = diff.^2;
+MSE = sum(diff_cuad(:))
+PSNR = 10*log(1/MSE)

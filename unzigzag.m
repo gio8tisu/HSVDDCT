@@ -4,7 +4,7 @@ function [B] = unzigzag(coeffs, N)
     B=zeros(N);
     cursor = [1 1];
     cont = 1;
-    coeffs = [coeffs;zeros(N*N-size(coeffs,1),1)]
+    coeffs = [coeffs;zeros(N*N-size(coeffs,1),1)];
     while cont<=(N*N)
         if cursor(2)==1 && cursor(1)<size(B,1) || cursor(2)==size(B,2)
             B(cursor(1),cursor(2)) = coeffs(cont);
