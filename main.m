@@ -5,6 +5,7 @@ N = 4; %TAMAÑO BLOQUES
 Nc = 8; %COEFICIENTES A ENVIAR
 alpha = 0.2; %UMBRAL DE DECISIÓN
 beta = 0.5; %PARAMETRO PARA NUMERO DE AUTOVECTORES
+B = 6; %BITS CUANTIFICADOR COEFICIENTES DCT
 
 %% Codificador
 %añadirmos zeros si hace falta
