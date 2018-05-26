@@ -1,5 +1,5 @@
-Sill_images/camman.lum
-Sill_images/diff.lum
-Sill_images/fruit.lum
-Sill_images/pam256.lum
-Sill_images/people.lum
+Still_images/camman.lum
+Still_images/diff.lum
+Still_images/fruit.lum
+Still_images/pam256.lum
+Still_images/people.lum
