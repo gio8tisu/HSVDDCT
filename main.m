@@ -1,12 +1,14 @@
-%% Leer imagen y definir parametros
-im = read_lumfile('Still_images/fruit.lum'); %IMAGEN CUADRADA
-im = im/255; %normalizamos
-N = 4; %TAMAÑO BLOQUES
-Nc = 8; %COEFICIENTES A ENVIAR
-alpha = 0.2; %UMBRAL DE DECISIÓN
-beta = 0.5; %PARAMETRO PARA NUMERO DE AUTOVECTORES
-B = 6; %BITS CUANTIFICADOR COEFICIENTES DCT
-paso = 2/(2^B); %PASO CUANTIFICACION (Xmax = 1)
+%% Leer y definir parametros
+im = read_lumfile('Still_images/camman.lum'); %IMAGEN CUADRADA
+N = 8; %TAMAÑO BLOQUES
+Nc = 64; %COEFICIENTES A ENVIAR
+alpha = 200; %UMBRAL DE DECISIÓN
+beta = 0.9; %PARAMETRO PARA NUMERO DE AUTOVECTORES
+B = 8; %BITS CUANTIFICADOR AUTOVECTORES
+%paso = 2/(2^B); %PASO CUANTIFICACION (Xmax = 1)
+load Q %TABLA CUANTIFICACION JPEG
+paso = zigzag(Q, Nc);
+clear Q
 
 %% Codec
 %añadirmos zeros si hace falta
@@ -23,21 +25,21 @@ end
 im_rec = zeros(size(im));
 for k=0:N:(size(im,1)-1)
     for l=0:N:(size(im,2)-1)
-        bloque = im(1+k:k+N,1+l:l+N);
-        desv = std(bloque(:));
+        X = im(1+k:k+N,1+l:l+N);
+        desv = std(X(:));
         if (desv<alpha) %decision en base a la desviacion
-            B = dct2(bloque);
+            B = dct2(X);
             coefs = zigzag(B,Nc); %aplanamos coeficientes
-            c = floor(coefs/paso); %cuantificamos
+            c = round(coefs./paso); %cuantificamos
             %decodificador
-            coefs_q = paso*(c+0.5); %deshacemos cuantificacion
+            coefs_q = paso.*c; %deshacemos cuantificacion
             B_rec = unzigzag(coefs_q,N);
-            bloque_rec = idct2(B_rec);
-            im_rec(1+k:k+N,1+l:l+N) = bloque_rec;
+            X_rec = idct2(B_rec);
+            im_rec(1+k:k+N,1+l:l+N) = X_rec;
         else
-            [U_r, c, U_l] = my_svd(bloque, beta);
-            bloque_rec = my_svd_inv(U_l, c, U_r);
-            im_rec(1+k:k+N,1+l:l+N) = bloque_rec;
+            [U_l, c, U_r] = my_svd(X, beta);
+            X_rec = my_svd_inv(U_l, c, U_r);
+            im_rec(1+k:k+N,1+l:l+N) = X_rec;
         end
     end
 end
@@ -54,4 +56,4 @@ title('Imagen Reconstruida')
 diff = im-im_rec;
 diff_cuad = diff.^2;
 MSE = sum(diff_cuad(:))
-PSNR = 10*log(1/MSE)
+PSNR = 10*log(255/MSE)
