@@ -23,6 +23,7 @@ end
 
 %para cada bloque de NxN...
 im_rec = zeros(size(im));
+im_rec_svd = zeros(size(im));
 for k=0:N:(size(im,1)-1)
     for l=0:N:(size(im,2)-1)
         X = im(1+k:k+N,1+l:l+N);
@@ -44,14 +45,20 @@ for k=0:N:(size(im,1)-1)
     end
 end
 
+
+%% resultado
 figure
-subplot(2,1,1)
+subplot(2,2,[1 2])
 imshow(im',[])
 title('Imagen Original')
 
-subplot(2,1,2)
+subplot(2,2,3)
 imshow(im_rec',[])
 title('Imagen Reconstruida')
+
+subplot(2,2,4)
+imshow(im_rec_svd',[])
+title('Partes Imagen Reconstruida con SVD')
 
 diff = im-im_rec;
 diff_cuad = diff.^2;
