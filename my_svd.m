@@ -18,10 +18,18 @@ function [U_l, c, U_r] = my_svd(X, beta)
     U_r = zeros(size(R_x,1),p);
     U_l = zeros(size(X,1),p);
     c = sqrt(l(1:p));
-    for j=1:p
-        u_r = null(R_x-l(j)*eye(size(R_x))); %find solution for (A-lambda*I)u_r=0
-        U_r(:,j) = u_r;
-        U_l(:,j) = (X*u_r)./c(j);
+    j = 1;
+    while j <= p
+        u_r = null(R_x-l(j)*eye(size(R_x))); %find solutions for u_r such that (A-lambda*I)u_r=0
+        nsol = size(u_r,2);
+        if nsol >= 1
+            U_r(:,j:(j+nsol-1)) = u_r;
+            U_l(:,j:(j+nsol-1)) = (X*u_r)./c(j);
+            j = j + nsol;
+        else %A VECES NO ENCUENTRA SOLUCION!!
+            throw(MException('SVD:NoSolution',...
+                'Unable to find eigenvector for given eigenvalue'))
+        end
     end
 end
 
