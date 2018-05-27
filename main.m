@@ -1,14 +1,21 @@
 %% Leer y definir parametros
 im = read_lumfile('Still_images/camman.lum'); %IMAGEN CUADRADA
-N = 8; %TAMAÑO BLOQUES
-Nc = 64; %COEFICIENTES A ENVIAR
-alpha = 200; %UMBRAL DE DECISIÓN
-beta = 0.9; %PARAMETRO PARA NUMERO DE AUTOVECTORES
-B = 8; %BITS CUANTIFICADOR AUTOVECTORES
-%paso = 2/(2^B); %PASO CUANTIFICACION (Xmax = 1)
+N = 4; %TAMAÑO BLOQUES
+Nc = 8; %COEFICIENTES A ENVIAR
+alpha = 20; %UMBRAL DE DECISIÓN TRANSFORMACION
+beta = 0.8; %UMBRAL PARA NUMERO DE AUTOVECTORES
+B = 10; %BITS CUANTIFICADOR VALORES SINGULARES
+paso = 1000/(2^B); %PASO CUANTIFICACION ( 0<=c<=1000)
 load Q %TABLA CUANTIFICACION JPEG
-paso = zigzag(Q, Nc);
-clear Q
+Q = zigzag(Q, Nc);
+gamma = [0.001, 0.1*ones(1,N-1)]; %UMBRALES DISTANCIA
+delta = 32; %TAMAÑO CODEBOOKS
+E = zeros(N,delta);
+counts = zeros(1,delta);
+codebook_cod = cell(1,N);
+codebook_cod(1,:) = {{E,counts}};
+codebook_decod = cell(1,N);
+codebook_decod(1,:) = {{E,counts}};
 
 %% Codec
 %añadirmos zeros si hace falta
@@ -27,20 +34,63 @@ im_rec_svd = zeros(size(im));
 for k=0:N:(size(im,1)-1)
     for l=0:N:(size(im,2)-1)
         X = im(1+k:k+N,1+l:l+N);
-        desv = std(X(:));
-        if (desv<alpha) %decision en base a la desviacion
-            B = dct2(X);
+        desv = std(X(:));%decision en base a la desviacion
+        if (desv<alpha) %DCT
+            %CODIFICADOR
+            B = dct2(X); %transformamos bloque
             coefs = zigzag(B,Nc); %aplanamos coeficientes
-            c = round(coefs./paso); %cuantificamos
-            %decodificador
-            coefs_q = paso.*c; %deshacemos cuantificacion
-            B_rec = unzigzag(coefs_q,N);
-            X_rec = idct2(B_rec);
+            c = round(coefs./Q); %cuantificamos coeficientes
+            %DECODIFICADOR
+            coefs_q = Q.*c; %reconstruimos coeficientes
+            B_rec = unzigzag(coefs_q,N); %montamos coeficientes
+            X_rec = idct2(B_rec); %reconstruimos bloque
             im_rec(1+k:k+N,1+l:l+N) = X_rec;
-        else
-            [U_l, c, U_r] = my_svd(X, beta);
-            X_rec = my_svd_inv(U_l, c, U_r);
-            im_rec(1+k:k+N,1+l:l+N) = X_rec;
+        else %SVD
+            try
+                %CODIFICADOR
+                [U_l, c, U_r] = my_svd(X, beta); %transformamos bloque
+                kc = floor(c/paso); %cuantificamos valores singulares
+                %Cuantificamos de autovectores
+                e_l = zeros(size(U_l,2));
+                e_r = zeros(size(U_r,2));
+                for i=1:size(U_l,2)
+                    [e_l(i), codebook_cod{i}] = svd_vq(U_l(:,i), ...
+                        codebook_cod{i}, gamma(i));
+                end
+                for i=1:size(U_r,2)
+                    [e_r(i), codebook_cod{i}] = svd_vq(U_r(:,i), ...
+                        codebook_cod{i}, gamma(i));
+                end
+                
+                %DECODIFICADOR
+                c_q = paso*(kc+0.5); %reconstruimos valores singulares
+                %reconstruimos autovectores
+                U_lq = zeros(N,length(e_l));
+                U_rq = zeros(N,length(e_r));
+                for i=1:length(e_l)
+                    if e_l(i)==0
+                        [U_lq(:,i), codebook_decod{i}] = isvd_vq(e_l(i),...
+                            codebook_decod{i}, U_l(:,i));
+                    else
+                        [U_lq(:,i), codebook_decod{i}] = isvd_vq(e_l(i),...
+                            codebook_decod{i});
+                    end
+                end
+                for i=1:length(e_r)
+                    if e_r(i)==0
+                        [U_rq(:,i), codebook_decod{i}] = isvd_vq(e_r(i),...
+                            codebook_decod{i}, U_r(:,i));
+                    else
+                        [U_rq(:,i), codebook_decod{i}] = isvd_vq(e_r(i),...
+                            codebook_decod{i});
+                    end
+                end
+                X_rec = my_svd_inv(U_lq, c_q, U_rq); %reconstruimos bloque
+                im_rec(1+k:k+N,1+l:l+N) = X_rec;
+            catch ME
+                warning(ME.identifier, '%s in block %d,%d', ME.message, k, l)
+                im_rec(1+k:k+N,1+l:l+N) = 255*ones(N);
+            end
         end
     end
 end
@@ -48,19 +98,15 @@ end
 
 %% resultado
 figure
-subplot(2,2,[1 2])
-imshow(im',[])
+subplot(1,2,1)
+imshow(im',[0 255])
 title('Imagen Original')
 
-subplot(2,2,3)
-imshow(im_rec',[])
+subplot(1,2,2)
+imshow(im_rec',[0 255])
 title('Imagen Reconstruida')
 
-subplot(2,2,4)
-imshow(im_rec_svd',[])
-title('Partes Imagen Reconstruida con SVD')
-
 diff = im-im_rec;
-diff_cuad = diff.^2;
+diff_cuad = diff.*diff;
 MSE = sum(diff_cuad(:))
 PSNR = 10*log(255/MSE)
