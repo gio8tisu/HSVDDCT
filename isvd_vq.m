@@ -10,10 +10,10 @@ function [u_q,codebook] = isvd_vq(e, codebook, u)
     else
         %sustituimos la palabra de menor frecuencia por la nueva
         [~,lfu] = min(counts);
-        E(:,lfu) = u;
+        E(:,lfu) = single(u);
         counts(lfu) = 1;
         codebook{1} = E;
-        u_q = u;
+        u_q = single(u); %cuantificamos con 32 bits
     end
     codebook{2} = counts;
 end

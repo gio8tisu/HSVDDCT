@@ -1,11 +1,11 @@
 %% Leer y definir parametros
-im = read_lumfile('Still_images/diff.lum'); %IMAGEN CUADRADA
+im = read_lumfile('Still_images/pam256.lum'); %IMAGEN CUADRADA
 N = 4; %TAMAÑO BLOQUES
-Nc = 8; %COEFICIENTES A ENVIAR
-alpha = 20; %UMBRAL DE DECISIÓN TRANSFORMACION
+Nc = 6; %COEFICIENTES A ENVIAR
+alpha = 30; %UMBRAL DE DECISIÓN TRANSFORMACION
 beta = 0.8; %UMBRAL PARA NUMERO DE AUTOVECTORES
-B = 8; %BITS CUANTIFICADOR VALORES SINGULARES
-paso = 1000/(2^B); %PASO CUANTIFICACION ( 0<=c<=1000)
+b = 8; %BITS CUANTIFICADOR VALORES SINGULARES
+paso = 1000/(2^b); %PASO CUANTIFICACION ( 0<=c<=1000)
 load Q %TABLA CUANTIFICACION JPEG
 Q = zigzag(Q, Nc);
 gamma = [0.001, 0.1*ones(1,N-1)]; %UMBRALES DISTANCIA
@@ -52,7 +52,7 @@ for k=0:N:(size(im,1)-1)
             try
                 %CODIFICADOR
                 [U_l, c, U_r] = my_svd(X, beta); %transformamos bloque
-                kc = uint(floor(c/paso)); %cuantificamos valores singulares
+                kc = uint8(floor(c/paso)); %cuantificamos valores singulares
                 %Cuantificamos de autovectores
                 e_l = zeros(size(U_l,2));
                 e_r = zeros(size(U_r,2));
@@ -67,13 +67,13 @@ for k=0:N:(size(im,1)-1)
                 %DECODIFICADOR
                 c_q = paso*(double(kc)+0.5); %reconstruimos valores singulares
                 %reconstruimos autovectores
-                U_lq = zeros(size(R_x,1),length(e_l));
+                U_lq = zeros(N,length(e_l));
                 U_rq = zeros(N,length(e_r));
                 for i=1:length(e_l)
                     if e_l(i)==0
                         [U_lq(:,i), codebook_decod{i}] = isvd_vq(e_l(i),...
                             codebook_decod{i}, U_l(:,i));
-                        nbits = nbits + size(R_x,1)*64; %bits del vector double
+                        nbits = nbits + N*32; %bits del vector double
                     else
                         [U_lq(:,i), codebook_decod{i}] = isvd_vq(e_l(i),...
                             codebook_decod{i});
@@ -85,7 +85,7 @@ for k=0:N:(size(im,1)-1)
                     if e_r(i)==0
                         [U_rq(:,i), codebook_decod{i}] = isvd_vq(e_r(i),...
                             codebook_decod{i}, U_r(:,i));
-                        nbits = nbits + N*64; %bits del vector double
+                        nbits = nbits + N*32; %bits del vector double
                     else
                         [U_rq(:,i), codebook_decod{i}] = isvd_vq(e_r(i),...
                             codebook_decod{i});
@@ -95,11 +95,15 @@ for k=0:N:(size(im,1)-1)
                 end
                 X_rec = my_svd_inv(U_lq, c_q, U_rq); %reconstruimos bloque
                 im_rec(1+k:k+N,1+l:l+N) = X_rec;
-                nbits = nbits + B*length(c);
+                nbits = nbits + b*length(c);
             catch ME
-                warning(ME.identifier, '%s in block %d,%d', ME.message, k, l)
-                im_rec(1+k:k+N,1+l:l+N) = X;
-                nerrores = nerrores + 1;
+                if strcmp(ME.identifier,'SVD:NoSolution')
+                    warning(ME.identifier, '%s in block %d,%d', ME.message, k, l)
+                    im_rec(1+k:k+N,1+l:l+N) = X;
+                    nerrores = nerrores + 1;
+                else
+                    rethrow(ME)
+                end
             end
         end
         nbits = nbits + 1; %bit de flag fa
@@ -119,7 +123,7 @@ title('Imagen Reconstruida')
 
 diff = im-im_rec;
 diff_cuad = diff.*diff;
-MSE = sum(diff_cuad(:))
-PSNR = 10*log(255/MSE)
+MSE = sum(diff_cuad(:))/numel(im)
+PSNR = 10*log(255^2/MSE)
 
-bpp = nbits/numel(im)
+bpp = nbits/(numel(im)-nerrores*16)

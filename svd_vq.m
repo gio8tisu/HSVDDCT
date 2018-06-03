@@ -22,7 +22,7 @@ function [e, codebook] = svd_vq(u, codebook, gamma)
         %distancia
         e = 0;
         [~,lfu] = min(counts);
-        E(:,lfu) = u;
+        E(:,lfu) = single(u); %cuantificamos con 32 bits
         counts(lfu) = 1;
         codebook{1} = E;
     end
